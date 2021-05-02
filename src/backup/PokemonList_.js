@@ -10,17 +10,19 @@ export default function PokemonList({ pokemon, pokemonUrl }) {
             return await axios.get(url);
         }
 
-        Promise.all(pokemonUrl.map((url) => getPokemonInfo(url))).then((res) =>
-            res.map((res) =>
-                setpokemonInfo((state) => [
-                    ...state,
-                    {
-                        name: res.data.name,
-                        info: res.data,
-                        sprite: res.data.sprites.front_default,
-                    },
-                ])
-            )
+        pokemonUrl.forEach(
+            async (url) =>
+                await getPokemonInfo(url).then(
+                    async (res) =>
+                        await setpokemonInfo((state) => [
+                            ...state,
+                            {
+                                name: res.data.name,
+                                info: res.data,
+                                sprite: res.data.sprites.front_default,
+                            },
+                        ])
+                )
         );
 
         return;
