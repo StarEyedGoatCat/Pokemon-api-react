@@ -51,10 +51,12 @@ function App() {
             <div className="app-container">
                 <h1>Pokemons</h1>
                 <Pagination
+                    key="pagination"
                     goToNextPage={nextPageUrl ? goToNextPage : null}
                     goToPrevPage={previusPageUrl ? goToPrevPage : null}
                 />
                 <PokemonList
+                    key="pokemonlist"
                     pokemon={pokemon}
                     pokemonUrl={pokemonUrl}
                     setloading={setloading}

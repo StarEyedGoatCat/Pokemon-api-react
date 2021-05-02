@@ -4,25 +4,72 @@ import axios from "axios";
 export default function PokePopUp({ info }) {
     // species - url -- evolution_chain - url -- chain - species - name
 
-    let speciesUrl = info.species.url;
-    const [evolutionChain, setevolutionChain] = useState([]);
+    const speciesUrl = info.species.url;
+    const [evoUrl, setevoUrl] = useState("");
+    const [evoName, setevoName] = useState([]);
 
-    const evolutionChainUrl = function evolutionChainUrl() {
-        return axios
-            .get(speciesUrl)
-            .then((res) => res.data.evolution_chain.url);
-    };
+    useEffect(() => {
+        function getThisData() {
+            axios.get(speciesUrl).then((res) => {
+                setevoUrl(res.data.evolution_chain.url);
+            });
+        }
+        getThisData();
+        return () => {};
+    }, [speciesUrl]);
 
-    const evolutionChainData = async function evolutionChainData() {
-        axios.get(evolutionChainUrl).then(async (res) => res.data);
-    };
+    useEffect(() => {
+        async function getEvolutions() {
+            await axios.get(evoUrl).then((res) => {
+                try {
+                    setevoName([res.data.chain.species.name]);
+                    try {
+                        if (res.data.chain.evolves_to[0].species) {
+                            setevoName((state) => [
+                                ...state,
+                                res.data.chain.evolves_to[0].species.name,
+                            ]);
+                        }
+                        try {
+                            if (
+                                res.data.chain.evolves_to[0].evolves_to[0]
+                                    .species
+                            ) {
+                                setevoName((state) => [
+                                    ...state,
+                                    res.data.chain.evolves_to[0].evolves_to[0]
+                                        .species.name,
+                                ]);
+                            }
+                            try {
+                                if (
+                                    res.data.chain.evolves_to[0].evolves_to[0]
+                                        .evolves_to[0].species
+                                ) {
+                                    setevoName((state) => [
+                                        ...state,
+                                        res.data.chain.evolves_to[0]
+                                            .evolves_to[0].evolves_to[0].species
+                                            .name,
+                                    ]);
+                                }
+                            } catch (error) {}
+                        } catch (error) {}
+                    } catch (error) {}
+                } catch (err) {}
+            });
+        }
 
-    console.log(evolutionChainUrl().then((res) => res.data));
-    console.log(evolutionChainData());
+        if (evoUrl) {
+            getEvolutions();
+        }
+        return () => {};
+    }, [evoUrl]);
 
     return (
         <div className="pop-up">
-            <h2></h2>
+            <h2>Know more!</h2>
+
             <div id={info.name + info.id} className="data-container">
                 <div className="name">
                     <div>Name:</div>
@@ -30,21 +77,27 @@ export default function PokePopUp({ info }) {
                 </div>
                 <div className="name">
                     <div>Type:</div>
-                    {info.types
-                        .map((type) => type.type.name)
-                        .map((type) => {
-                            return <div> {type} </div>;
-                        })}
+                    <div>
+                        {info.types
+                            .map((type) => type.type.name)
+                            .map((type, index) => {
+                                return <div key={index}> {type} </div>;
+                            })}
+                    </div>
                 </div>
                 <div className="name">
                     <div>Sprite:</div>
                     <div>
-                        <img src={info.sprites.front_default}></img>
+                        <img alt="" src={info.sprites.front_default}></img>
                     </div>
                 </div>
                 <div className="name">
-                    <div>Is Baby:</div>
-                    <div></div>
+                    <div>Evolutions:</div>
+                    <div>
+                        {evoName.map((evo, index) => (
+                            <div key={index}>{evo}</div>
+                        ))}{" "}
+                    </div>
                 </div>
             </div>
         </div>

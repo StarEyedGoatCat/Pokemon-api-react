@@ -2,17 +2,12 @@ import React, { useState } from "react";
 import PokePopUp from "./PokePopUp";
 
 export default function PokemonCard({ info }) {
-    function logPokemon() {
-        console.log(info);
-    }
-
     const [isShow, setIsShown] = useState(false);
 
     return (
         <div
             onMouseEnter={() => setIsShown(true)}
             onMouseLeave={() => setIsShown(false)}
-            onClick={logPokemon}
             className="pokemon"
             id={info.id}
         >
@@ -21,8 +16,10 @@ export default function PokemonCard({ info }) {
                 rel="preload"
                 as="image"
                 src={info.sprites.front_default}
+                alt=""
             ></img>
-            {isShow && <PokePopUp key={info.name + info.id} info={info} />}
+
+            {isShow && <PokePopUp info={info} />}
         </div>
     );
 }
