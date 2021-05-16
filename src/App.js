@@ -1,77 +1,151 @@
-// import React from "react";
-import React, { useState, useEffect } from "react";
-import PokemonList from "./PokemonList";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import Pagination from "./Pagination";
 
 function App() {
-    const [pokemon, setPokemon] = useState([]);
-    const [pokemonUrl, setPokemonUrl] = useState([]);
-
-    const [currentPageUrl, setcurrentPageUrl] = useState(
-        "https://pokeapi.co/api/v2/pokemon"
+    const [pokemonList, setPokemonList] = useState([]);
+    const [species, setSpecies] = useState(null);
+    const [evolution, setEvolution] = useState(null);
+    const [isLoading, setLoading] = useState(false);
+    const [url, setUrl] = useState(
+        "https://pokeapi.co/api/v2/pokemon?limit=15"
     );
-    const [nextPageUrl, setnextPageUrl] = useState();
-    const [previusPageUrl, setpreviusPageUrl] = useState();
-    const [loading, setloading] = useState(true);
+    const [nextUrl, setNextUrl] = useState(null);
+    const [prevUrl, setPrevUrl] = useState(null);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [isModalVisible, setModalVisibility] = useState(false);
 
     useEffect(() => {
-        setloading(true);
+        const source = axios.CancelToken.source();
 
-        let cancel;
+        const fetchItem = async (url) => {
+            try {
+                return await axios(url, { cancelToken: source.token });
+            } catch (error) {
+                throw error;
+            }
+        };
 
-        function getPokemon() {
-            return axios.get(currentPageUrl, {
-                cancelToken: new axios.CancelToken((c) => (cancel = c)),
-            });
-        }
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const response = await axios(url, {
+                    cancelToken: source.token,
+                });
+                setNextUrl(response.data.next);
+                setPrevUrl(response.data.previous);
 
-        Promise.all([getPokemon()]).then(function (results) {
-            setPokemon(results[0].data.results.map((p) => p.name));
-            setPokemonUrl(results[0].data.results.map((p) => p.url));
-            setnextPageUrl(results[0].data.next);
-            setpreviusPageUrl(results[0].data.previous);
-            setloading(false);
-        });
+                const results = await Promise.all(
+                    (response.data.results || []).map((key) =>
+                        fetchItem(key.url)
+                    )
+                );
 
-        return () => cancel();
-    }, [currentPageUrl]);
+                const singleItem = await results.map((result) => {
+                    const { id, name, weight, height, types, abilities } =
+                        result.data;
+                    const speciesURL = result.data.species.url;
 
-    function goToNextPage() {
-        setcurrentPageUrl(nextPageUrl);
-    }
-    function goToPrevPage() {
-        setcurrentPageUrl(previusPageUrl);
-    }
+                    const image = result.data.sprites.front_default;
 
-    if (loading) return "Loading...";
+                    return {
+                        id,
+                        name,
+                        weight,
+                        height,
+                        image,
+                        types,
+                        abilities,
+                        speciesURL,
+                    };
+                });
 
-    return (
-        <>
-            <div className="app-container">
-                <h1>Pokemons</h1>
-                <Pagination
-                    key="pagination"
-                    goToNextPage={nextPageUrl ? goToNextPage : null}
-                    goToPrevPage={previusPageUrl ? goToPrevPage : null}
-                />
-                <PokemonList
-                    key="pokemonlist"
-                    pokemon={pokemon}
-                    pokemonUrl={pokemonUrl}
-                    setloading={setloading}
-                />
-            </div>
-        </>
-    );
+                setPokemonList(singleItem);
+            } catch (error) {
+                throw error;
+            }
+        };
+
+        fetchData();
+
+        return () => {
+            source.cancel();
+        };
+    }, [url]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const chains = await pokemonList.map(
+                    (pokemon) => pokemon.speciesURL
+                );
+                console.log(chains);
+                const response = await chains.map((chainUrl) =>
+                    axios(chainUrl)
+                );
+                console.log(response);
+                const results = await (
+                    await Promise.all(response || [])
+                ).map((res) => {
+                    const evoChain = res.data.evolution_chain.url;
+                    const evoFrom = res.data.evolves_from_species;
+                    const generation = res.data.generation;
+
+                    return {
+                        evoChain,
+                        evoFrom,
+                        generation,
+                    };
+                });
+                console.log(results);
+                setSpecies(results);
+            } catch (error) {}
+        };
+
+        fetchData();
+
+        return () => {};
+    }, [pokemonList]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const evolution = await species.map(
+                    (pokemon) => pokemon.evoChain
+                );
+                console.log(evolution);
+
+                const response = await evolution.map((evoUrl) => axios(evoUrl));
+                console.log(response);
+
+                const results = await (
+                    await Promise.all(response || [])
+                ).map((res) => res.data);
+                console.log(results);
+
+                setEvolution(results);
+            } catch (error) {}
+        };
+
+        fetchData();
+
+        return () => {};
+    }, [species]);
+
+    const onSelected = (id) => {
+        setModalVisibility(true);
+        setSelectedItem(id);
+    };
+
+    const onHideModal = () => {
+        setSelectedItem(null);
+        setModalVisibility(false);
+    };
+
+    const onClickNext = () => setUrl(nextUrl);
+
+    const onClickPrevious = () => setUrl(prevUrl);
+
+    return <div></div>;
 }
 
 export default App;
-
-// Promise.all(getPokemon()).then((res) => {
-//     setloading(false);
-//     setPokemon(res.data.results.map((p) => p.name));
-//     setPokemonUrl(res.data.results.map((p) => p.url));
-//     setnextPageUrl(res.data.next);
-//     setpreviusPageUrl(res.data.previous);
-// });
